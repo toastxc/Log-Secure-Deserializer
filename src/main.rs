@@ -8,18 +8,19 @@ use serde_json::{Result};
 use serde::{Deserialize, Serialize};
 
 
-const INVAL: &str = "Connection closed by invalid user";
-   
+const INVAL: &str = "Failed password for";
+
 #[derive(Debug, Serialize, Deserialize)]
-struct InvalidUserData {
+struct InvalidPassword {
     pub date: String,
     pub hostname: String,
     pub time: String,
+    pub user_invalid: bool,
     pub username: String,
     pub ip: String,
+
+    
 }
-
-
 
 
 fn main() {
@@ -51,21 +52,19 @@ fn main() {
     };
 
 
-  
 
-    let inval: Vec<InvalidUserData> = invalid_user(allvec);
+    // Failed password
 
+    let inval_password: Vec<InvalidPassword> = invalid_password(allvec);
+   
+    let inval_password_str: String = serde_json::to_string(&inval_password).unwrap();
 
-    let inval_str: String = serde_json::to_string(&inval).unwrap();
-
-    string_to_fs("InvalidUserLogin.txt", &inval_str);
-
+    string_to_fs("InvalidPassword.txt", &inval_password_str);
 
 }
 
-fn invalid_user(mut raw: Vec<Vec<String>>) -> Vec<InvalidUserData> {
 
-
+fn invalid_password(mut raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
      
     let mut inval: Vec<Vec<String>> = vec![];
 
@@ -74,9 +73,7 @@ fn invalid_user(mut raw: Vec<Vec<String>>) -> Vec<InvalidUserData> {
         if raw[x].len() > 10 {
 
  
-         
-            let greper = format!("{} {} {} {} {}",
-                                 raw[x ][5], raw[x ][6], raw[x ][7], raw[x ][8], raw[x ][9]);    
+            let greper = format!("{} {} {}", raw[x][5], raw[x][6], raw[x][7]);
          
             if greper == INVAL {
                 inval.push(raw[x].clone());
@@ -84,19 +81,31 @@ fn invalid_user(mut raw: Vec<Vec<String>>) -> Vec<InvalidUserData> {
         };
     };
 
-    let mut structured_vec: Vec<InvalidUserData> = vec![];
+    let mut structured_vec: Vec<InvalidPassword> = vec![];
+
 
     for x in 0..inval.len() {
 
-        let temp = InvalidUserData {
+
+        let (is_user_invalid, username) = match &inval[x][8] as &str{
+            "invalid" => (true, inval[x][10].clone()),
+            _         => (false, inval[x][8].clone()),
+        };
+    
+        
+        let temp = InvalidPassword {
             date: format!("{} {}", inval[x][0].clone(), inval[x][1].clone()),
             time: inval[x][2].clone(),
+            user_invalid: is_user_invalid,
             hostname: inval[x][3].clone(),
-            username: inval[x][10].clone(),
+            username: username,
             ip: inval[x][11].clone(),
         };
         structured_vec.push(temp);
     };
+
+
+    //println!("{:?}", structured_vec[5]);
 
     return structured_vec
 
@@ -113,7 +122,6 @@ fn string_to_fs(target: &str, payload: &str)  {
 
       file.write_all(payload.as_bytes()).unwrap();
 
-
 }
 
 fn fs_to_string(target: &str) -> Result<String> {
@@ -127,7 +135,6 @@ fn fs_to_string(target: &str) -> Result<String> {
         .expect("could to parse file");
 
     Ok(out)
-
 
 }
 
