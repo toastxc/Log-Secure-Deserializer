@@ -26,45 +26,86 @@ struct InvalidPassword {
 fn main() {
 
 
-    let log_res = fs_to_string("log.txt");
+    
+    let log = fs_to_string("log.txt")
+        .expect("Error reading log.txt");
 
 
-    let log = match log_res {
-        Ok(a) => a,
-        Err(e) => {println!("invalid: {e}"); return},
-    };
 
-    let entries = log.split('\n').collect::<Vec<&str>>();
+    let log_vec = log.split('\n').collect::<Vec<&str>>();
 
     let mut allvec: Vec<Vec<String>> = vec![];
 
-    for x in 0..entries.len() {
 
-        let inner = entries[x].split(' ').collect::<Vec<&str>>();
 
-        let mut inner2 = vec![];
+    for x in 0..log_vec.len() {
 
-        for y in 0..inner.len() {
-            inner2.push(format!("{}", inner[y]));
+        let log_vec_args_str = log_vec[x].split(' ').collect::<Vec<&str>>();
+
+        let mut log_vec_args = vec![];
+
+        for y in 0..log_vec_args_str.len() {
+            log_vec_args.push(format!("{}", log_vec_args_str[y]));
         };
 
-        allvec.push(inner2);
+        allvec.push(log_vec_args);
     };
 
 
 
-    // Failed password
 
-    let inval_password: Vec<InvalidPassword> = invalid_password(allvec);
+
+    // Failed password converter
+
+    let psw: Vec<InvalidPassword> = invalid_password(allvec);
    
-    let inval_password_str: String = serde_json::to_string(&inval_password).unwrap();
+    let inval_password_str: String = serde_json::to_string(&psw).unwrap();
 
     string_to_fs("InvalidPassword.txt", &inval_password_str);
+
+            
+    // example of interpreting threat data
+    interpret();
+
+}
+
+fn interpret() {
+
+
+    let raw = fs_to_string("InvalidPassword.txt")
+        .expect("Failed to read InvalidPassword.txt");
+
+    let psw: Vec<InvalidPassword> = serde_json::from_str(&raw)
+        .expect("Failed to deserialize InvalidPassword.txt");
+
+     println!("REPORT\nThere have been {} Failed password attempts between {} and {}",
+             psw.len(), psw[0].date, psw[psw.len()-1].date);
+
+
+    let (mut root )  = ( 0); // for line 88
+    
+    for x in 0..psw.len() {
+
+        let name = &psw[x].username;
+
+        match &name as &str {
+            "root" => root += 1,
+            // expand this with your systems users!
+            _      => {},
+        };
+
+    };
+    println!("There were {} attempts for root and {} invalid user attempts",
+             root,  psw.len() - root );
+
+
+
+
 
 }
 
 
-fn invalid_password(mut raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
+fn invalid_password(raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
      
     let mut inval: Vec<Vec<String>> = vec![];
 
