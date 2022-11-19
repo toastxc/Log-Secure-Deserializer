@@ -8,7 +8,9 @@ use serde_json::{Result};
 use serde::{Deserialize, Serialize};
 
 
-const INVAL: &str = "Failed password for";
+const PSW: &str = "Failed password for";
+const KEY: &str = "no matching key";
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct InvalidPassword {
@@ -21,6 +23,16 @@ struct InvalidPassword {
 
     
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+struct InvalidKey {
+    pub date: String,
+    pub hostname: String,
+    pub time: String,
+    pub ip: String,
+
+}
+
 
 
 fn main() {
@@ -54,14 +66,19 @@ fn main() {
 
 
 
+    // this process follows 3 steps 
+    // 1: turn readable text into vectors of key words 
+    // 2: deserialize those key words into a struct
+    // 3: save the data as jsons
 
-    // Failed password converter
 
-    let psw: Vec<InvalidPassword> = invalid_password(allvec);
-   
+    let psw: Vec<InvalidPassword> = invalid_password(allvec.clone());   
     let inval_password_str: String = serde_json::to_string(&psw).unwrap();
-
     string_to_fs("InvalidPassword.txt", &inval_password_str);
+
+    let key: Vec<InvalidKey> = invalid_key(allvec);
+    let inval_key_str: String = serde_json::to_string(&key).unwrap();
+    string_to_fs("InvalidKey.txt", &inval_key_str);
 
             
     // example of interpreting threat data
@@ -82,7 +99,7 @@ fn interpret() {
              psw.len(), psw[0].date, psw[psw.len()-1].date);
 
 
-    let (mut root )  = ( 0); // for line 88
+    let mut root   = 0; // for line 88
     
     for x in 0..psw.len() {
 
@@ -98,12 +115,49 @@ fn interpret() {
     println!("There were {} attempts for root and {} invalid user attempts",
              root,  psw.len() - root );
 
+}
+fn invalid_key(raw: Vec<Vec<String>>) -> Vec<InvalidKey> {
+
+    
+    let mut inval: Vec<Vec<String>> = vec![];
+
+    // greper functions similarly to grep as it checks given key words against
+    // a data set
+    for x in 0..raw.len() {
+ 
+        if raw[x].len() > 17 {
+            let greper = format!("{} {} {}", raw[x][12], raw[x][13], raw[x][14]);
+
+            if greper == KEY {
+                inval.push(raw[x].clone());
+            };
+        };
+    };
+
+    let mut keyvec: Vec<InvalidKey> = vec![];
+
+    // from the entries that have been 'grepered', deserialize the data
+    for x in 0..inval.len() {
+
+        let temp = InvalidKey {
+
+            date: format!("{} {}", inval[x][0].clone(), inval[x][1].clone()),
+            hostname: inval[x][3].clone(),
+            time: inval[x][2].clone(),
+            ip: inval[x][9].clone(),
+
+        };
+
+         keyvec.push(temp);
+
+    };
+
+    return keyvec;
 
 
 
 
 }
-
 
 fn invalid_password(raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
      
@@ -116,7 +170,7 @@ fn invalid_password(raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
  
             let greper = format!("{} {} {}", raw[x][5], raw[x][6], raw[x][7]);
          
-            if greper == INVAL {
+            if greper == PSW {
                 inval.push(raw[x].clone());
             };
         };
@@ -145,16 +199,13 @@ fn invalid_password(raw: Vec<Vec<String>>) -> Vec<InvalidPassword> {
         structured_vec.push(temp);
     };
 
-
-    //println!("{:?}", structured_vec[5]);
-
     return structured_vec
 
 }
 
 
 
-// library
+// filesystem library 
 
 fn string_to_fs(target: &str, payload: &str)  {
 
