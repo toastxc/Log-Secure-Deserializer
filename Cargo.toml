@@ -1,5 +1,5 @@
 [package]
-name = "logger"
+name = "lsd"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 serde_json = "*"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "*", features = ["derive"] }
+toml = "*"
+serde_yaml = "*"
