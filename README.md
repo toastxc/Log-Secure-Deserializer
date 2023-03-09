@@ -15,6 +15,8 @@ LSD is able to generate jsons showing
 - invalid passwords for log-in attempts 
 - invalid keys for login attempts 
 
+The results can be exported as a JSON or YAML file.
+
 ## Usage
 ```bash
 git clone https://github.com/toastxc/Log-Secure-Deserializer
